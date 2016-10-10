@@ -1,8 +1,7 @@
 Install and upgrade Deis Workflow PaaS in AWS without fuss
 ========================
 
-It allows to install [Deis Workflow PaaS](https://deis.com/workflow/) on to AWS with persistent [Object Storage](https://deis.com/docs/workflow/installing-workflow/configuring-object-storage/) set to Google Cloud Storage and Registry to [gcr.io](https://cloud.google.com/container-registry/)
-and has an option to set PostgreSQL database to off-cluster use.
+It allows to install [Deis Workflow PaaS](https://deis.com/workflow/) on to AWS with persistent [Object Storage](https://deis.com/docs/workflow/installing-workflow/configuring-object-storage/) set to AWS S3 and Registry to ECR and has an option to set PostgreSQL database to off-cluster use.
 
 How to install
 ----------
@@ -10,7 +9,7 @@ How to install
 Clone repository:
 
 ```
-$ git clone https://github.com/rimusz/deis-workflow-gke
+$ git clone https://github.com/rimusz/deis-workflow-aws
 ```
 
 Set S3 region, and AWS keys `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in `settings` file:
@@ -77,6 +76,6 @@ What the [upgrade](https://deis.com/docs/workflow/managing-workflow/upgrading-wo
 
 ## Contributing
 
-`deis-workflow-gke` is an [open source](http://opensource.org/osd) project, released under
+`deis-workflow-aws` is an [open source](http://opensource.org/osd) project, released under
 the [Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0),
 hence contributions and suggestions are gladly welcomed!
