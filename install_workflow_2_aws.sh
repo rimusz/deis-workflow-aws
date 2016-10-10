@@ -1,10 +1,9 @@
 #!/bin/bash
 
+# Overall Workflow settings
+# S3 region
 # AWS credentials
-source credentials
-
-# buckets name prefix
-source buckets
+source settings
 
 install() {
   # get k8s cluster name
@@ -43,22 +42,17 @@ install() {
   # so we do not have to edit generate_params.toml in chart’s tpl folder
   # set storage to AWS S3
   STORAGE_TYPE=s3
-  AWS_ACCESS_KEY=${aws_access_key_id}
-  AWS_SECRET_KEY=${aws_secret_access_key}
+  S3_REGION=${BUCKETS_S3_REGION}
+  AWS_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
+  AWS_SECRET_KEY=${AWS_SECRET_ACCESS_KEY}
   AWS_REGISTRY_BUCKET=${K8S_NAME}-deis-registry
   AWS_DATABASE_BUCKET=${K8S_NAME}-deis-database
   AWS_BUILDER_BUCKET=${K8S_NAME}-deis-builder
   # set off-cluster registry
   DEIS_REGISTRY_LOCATION=ecr
-  GCR_KEY_JSON=$(cat service_account_key.json)
-  if [[ "$1" == "eu" ]]
-  then
-    GCR_HOSTNAME="eu.gcr.io"
-  else
-    GCR_HOSTNAME=""
-  fi
-  #
-  export STORAGE_TYPE GCS_KEY_JSON GCS_REGISTRY_BUCKET GCS_DATABASE_BUCKET GCS_BUILDER_BUCKET DEIS_REGISTRY_LOCATION GCR_KEY_JSON
+
+  # export as env vars
+  export STORAGE_TYPE S3_REGION AWS_ACCESS_KEY AWS_SECRET_KEY AWS_REGISTRY_BUCKET AWS_DATABASE_BUCKET AWS_BUILDER_BUCKET DEIS_REGISTRY_LOCATION
   ####
 
   # set off-cluster Postgres
@@ -131,24 +125,18 @@ upgrade() {
   # set env vars
   # so we do not have to edit generate_params.toml in chart’s tpl folder
   # set storage to AWS S3
-  STORAGE_TYPE=gcs
-  GCS_KEY_JSON=$(cat service_account_key.json)
-  GCS_REGISTRY_BUCKET=${K8S_NAME}-deis-registry
-  GCS_DATABASE_BUCKET=${K8S_NAME}-deis-database
-  GCS_BUILDER_BUCKET=${K8S_NAME}-deis-builder
-
+  STORAGE_TYPE=s3
+  S3_REGION=${BUCKETS_S3_REGION}
+  AWS_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
+  AWS_SECRET_KEY=${AWS_SECRET_ACCESS_KEY}
+  AWS_REGISTRY_BUCKET=${K8S_NAME}-deis-registry
+  AWS_DATABASE_BUCKET=${K8S_NAME}-deis-database
+  AWS_BUILDER_BUCKET=${K8S_NAME}-deis-builder
   # set off-cluster registry
   DEIS_REGISTRY_LOCATION=ecr
-  GCR_KEY_JSON=$(cat service_account_key.json)
-  if [[ "$2" == "eu" ]]
-  then
-    GCR_HOSTNAME=eu.gcr.io
-  else
-    GCR_HOSTNAME=""
-  fi
 
-  # export values as environment variables
-  export STORAGE_TYPE GCS_KEY_JSON GCS_REGISTRY_BUCKET GCS_DATABASE_BUCKET GCS_BUILDER_BUCKET DEIS_REGISTRY_LOCATION GCR_KEY_JSON GCR_HOSTNAME
+  # export as env vars
+  export STORAGE_TYPE S3_REGION AWS_ACCESS_KEY AWS_SECRET_KEY AWS_REGISTRY_BUCKET AWS_DATABASE_BUCKET AWS_BUILDER_BUCKET DEIS_REGISTRY_LOCATION
   ####
 
   # set off-cluster Postgres
@@ -209,16 +197,17 @@ fi
 cluster() {
   # get k8s cluster name
   echo " "
-  echo "Fetching GKE cluster name ..."
-  K8S_NAME=$(kubectl config current-context)
-  echo "GKE cluster name is ${K8S_NAME} ..."
+  echo "Fetching Kubernetes cluster name ..."
+  K8S_NAME=$(kubectl config current-context | cut -c 5-)
+  echo "Kubernetes cluster name is ${K8S_NAME} ..."
   echo " "
 }
 
 install_deis() {
   # get lastest macOS deis cli version
   echo "Downloading latest version of Workflow deis cli ..."
-  curl -o ~/bin/deis https://storage.googleapis.com/workflow-cli/deis-latest-darwin-amd64
+  curl -sSL http://deis.io/deis-cli/install-v2.sh | bash
+  mv -f deis ~/bin/
   chmod +x ~/bin/deis
   echo " "
   echo "Installed deis cli to ~/bin ..."
@@ -250,15 +239,15 @@ wait_for_workflow() {
 }
 
 usage() {
-    echo "Usage: install_workflow_2_gke.sh install [eu] | upgrade [eu] | deis | helmc | cluster"
+    echo "Usage: install_workflow_2_aws.sh install | upgrade | deis | helmc | cluster"
 }
 
 case "$1" in
         install)
-                install $2
+                install
                 ;;
         upgrade)
-                upgrade $2
+                upgrade
                 ;;
         deis)
                 install_deis

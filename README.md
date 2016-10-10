@@ -1,11 +1,11 @@
-Install and upgrade Deis Workflow PaaS in GKE without fuss
+Install and upgrade Deis Workflow PaaS in AWS without fuss
 ========================
 
-It allows to install [Deis Workflow PaaS](https://deis.com/workflow/) on to GKE with persistent [Object Storage](https://deis.com/docs/workflow/installing-workflow/configuring-object-storage/) set to Google Cloud Storage and Registry to [gcr.io](https://cloud.google.com/container-registry/)
+It allows to install [Deis Workflow PaaS](https://deis.com/workflow/) on to AWS with persistent [Object Storage](https://deis.com/docs/workflow/installing-workflow/configuring-object-storage/) set to Google Cloud Storage and Registry to [gcr.io](https://cloud.google.com/container-registry/)
 and has an option to set PostgreSQL database to off-cluster use.
+
 How to install
 ----------
-
 
 Clone repository:
 
@@ -13,52 +13,65 @@ Clone repository:
 $ git clone https://github.com/rimusz/deis-workflow-gke
 ```
 
+Set S3 region, and AWS keys `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in `settings` file:
+
+```
+# overall Workflow settings
+
+# buckets S3 region
+BUCKETS_S3_REGION=us-west-1
+
+# AWS credentials
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+```
+
 How it works
 ------------
 
 ```
-$ ./install_workflow_2_gke.sh
-Usage: install_workflow_2_gke.sh install [eu] | upgrade [eu] | deis | helmc | cluster
+$ ./install_workflow_2_aws.sh
+Usage: install_workflow_2_aws.sh install | upgrade | deis | helmc | cluster
 ```
 
 You will be able:
 
-- install - by defautl sets Object Storage to US region, use `eu` flag for EU region
+- install - sets Object Storage in specified AWS region in `settings` file
 - upgrade - upgrades to the latest Workflow version (use the same region as was for install)
 - deis - fetches the latest Workflow `deis` cli
 - helmc - fetches the latest [Helm Classic](https://github.com/helm/helm-classic) cli
-- cluster - shows cluster GKE name
+- cluster - shows Kubernetes cluster name
 
 Also if you rename/copy `postgres_settings.tpl` file to `postgres_settings`, then you can set [PostgreSQL](https://deis.com/docs/workflow/installing-workflow/configuring-postgres/) database to off-cluster.
-As Google Cloud Platform does not have hosted Postgres, you can use [compose.io](https://www.compose.com/postgresql) one, which supports GCP deployment.
+You can set the postgres database in Kubernetes cluster or use RDS one.
 
 What the [install](https://deis.com/docs/workflow/installing-workflow/) will do:
 
-- Gets GKE cluster name which is used to create GCS buckets and Helm chart
-- Download lastest `helmc` cli version
-- Download lastest `deis` cli version
-- Add Deis Chart repository
-- Fetch latest Workflow chart
-- Set storage to GCS
-- Set Registry to grc.io
-- If `postgres_settings` file found sets PostgeSQL database to off-cluster 
-- Generate chart
-- Install Workflow
-- Show `deis-router` external IP
+- Gets Kubernetes cluster name which is used to create S3 buckets and Helm chart
+- Downloads lastest `helmc` cli version
+- Downloads lastest `deis` cli version
+- Adds Deis Chart repository
+- Fetches latest Workflow chart
+- Sets storage to S3
+- Sets Registry to ECR
+- If `postgres_settings` file found sets PostgeSQL database to off-cluster
+- Generates chart
+- Installs Workflow
+- Shows `deis-router` external IP
 
 What the [upgrade](https://deis.com/docs/workflow/managing-workflow/upgrading-workflow/) will do:
 
-- Download lastest `helmc` cli version
-- Download lastest `deis` cli version
-- Fetch latest Workflow chart
-- Fetch current database credentials
-- Fetch builder component ssh keys
-- Set Storage to GCS
-- Set Registry to grc.io
-- If `postgres_settings` file found sets PostgeSQL database to off-cluster 
-- Generate chart for the new release
-- Uninstall old version Workflow
-- Install new version Workflow
+- Downloads lastest `helmc` cli version
+- Downloads lastest `deis` cli version
+- Fetches latest Workflow chart
+- Fetches current database credentials
+- Fetches builder component ssh keys
+- Sets Storage to S3
+- Sets Registry to ECR
+- If `postgres_settings` file found sets PostgeSQL database to off-cluster
+- Generates chart for the new release
+- Uninstalls old version of Workflow
+- Installs new version of Workflow
 
 ### have fun with Deis Workflow PaaS of deploying your 12 Factor Apps !!!
 
