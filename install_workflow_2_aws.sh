@@ -1,11 +1,25 @@
 #!/bin/bash
 
+set_settings() {
+# check for settings file
+if [[ ! -f settings ]]
+then
+  echo "'settings' file is missing!!!"
+  echo "Rename/copy 'settings.tpl' file to 'settings', then set S3 region, and AWS keys there"
+  exit 0
+fi
+
 # Overall Workflow settings
 # S3 region
 # AWS credentials
 source settings
+}
+
 
 install() {
+  # get seeitngs
+  set_settings
+
   # get k8s cluster name
   cluster
 
@@ -48,11 +62,15 @@ install() {
   AWS_REGISTRY_BUCKET=${K8S_NAME}-deis-registry
   AWS_DATABASE_BUCKET=${K8S_NAME}-deis-database
   AWS_BUILDER_BUCKET=${K8S_NAME}-deis-builder
+
   # set off-cluster registry
-  DEIS_REGISTRY_LOCATION=ecr
+  REGISTRY_LOCATION=ecr
+  ECR_REGION=${BUCKETS_S3_REGION}
+  ECR_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
+  ECR_SECRET_KEY=${AWS_SECRET_ACCESS_KEY}
 
   # export as env vars
-  export STORAGE_TYPE S3_REGION AWS_ACCESS_KEY AWS_SECRET_KEY AWS_REGISTRY_BUCKET AWS_DATABASE_BUCKET AWS_BUILDER_BUCKET DEIS_REGISTRY_LOCATION
+  export STORAGE_TYPE S3_REGION AWS_ACCESS_KEY AWS_SECRET_KEY AWS_REGISTRY_BUCKET AWS_DATABASE_BUCKET AWS_BUILDER_BUCKET REGISTRY_LOCATION ECR_ACCESS_KEY ECR_SECRET_KEY ECR_REGION
   ####
 
   # set off-cluster Postgres
@@ -62,6 +80,12 @@ install() {
   echo " "
   echo "Generating Workflow ${WORKFLOW_RELEASE}-${K8S_NAME} manifests ..."
   helmc generate -x manifests -f workflow-${WORKFLOW_RELEASE}-${K8S_NAME}
+
+  # set intenal AWS LB - WIP
+  if [[ ! -z "$ILB" ]]
+  then
+    echo "Enabling internal LoadBalancer for Workflow Router ..."
+  fi
 
   # install Workflow
   echo " "
@@ -74,7 +98,7 @@ install() {
 
   # get router's external IP
   echo " "
-  echo "Fetching Router's LB external IP:"
+  echo "Fetching Router's LB IP:"
   LB_IP=$(kubectl --namespace=deis get svc | grep [d]eis-router | awk '{ print $3 }')
   echo "$LB_IP"
 
@@ -84,6 +108,9 @@ install() {
 }
 
 upgrade() {
+  # get seeitngs
+  set_settings
+
   # get k8s cluster name
   cluster
 
@@ -224,6 +251,41 @@ install_helmc() {
   echo " "
 }
 
+install_helm() {
+  # get lastest macOS helm cli version
+  echo " "
+  echo "Checking for latest Helm version..."
+  mkdir ~/tmp > /dev/null 2>&1
+  LATEST_HELM=$(curl -s https://api.github.com/repos/kubernetes/helm/releases/latest | grep "tag_name" | awk '{print $2}' | sed -e 's/"\(.*\)"./\1/')
+
+  # check if the binary exists
+  if [ ! -f ~/bin/helm ]; then
+      INSTALLED_HELM=v0.0.0
+  else
+      INSTALLED_HELM=$(~/bin/helm version)
+  fi
+  #
+  MATCH=$(echo "${INSTALLED_HELM}" | grep -c "${LATEST_HELM}")
+  if [ $MATCH -ne 0 ]; then
+      echo " "
+      echo "Helm is up to date !!!"
+  else
+      echo " "
+      echo "Downloading latest ${LATEST_HELM} of 'helm' cli for macOS"
+      curl -k -L http://storage.googleapis.com/kubernetes-helm/helm-${LATEST_HELM}-darvin-amd64.tar.gz > ~/tmp/helm.tar.gz
+      tar xvf ~/tmp/helm.tar.gz -C ~/tmp --strip=1 darwin-amd64/helm > /dev/null 2>&1
+      chmod +x ~/tmp/helm
+      mv -f helm ~/bin/helm
+      rm -f ~/tmp/helm.tar.gz
+      echo " "
+      echo "Installed latest ${LATEST_HELM} of 'helm' cli to ~/bin ..."
+      echo " "
+      echo "Installing new version of Helm Tiller..."
+      kubectl --namespace=kube-system delete deployment tiller-deploy
+      ~/bin/helm init
+  fi
+}
+
 wait_for_workflow() {
   echo " "
   echo "Waiting for Deis Workflow to be ready... but first, coffee! "
@@ -231,15 +293,17 @@ wait_for_workflow() {
   i=1
   until kubectl --namespace=deis get po | grep [d]eis-builder- | grep "1/1"  >/dev/null 2>&1; do i=$(( (i+1) %4 )); printf "\r${spin:$i:1}"; sleep .1; done
   until kubectl --namespace=deis get po | grep [d]eis-registry- | grep "1/1"  >/dev/null 2>&1; do i=$(( (i+1) %4 )); printf "\r${spin:$i:1}"; sleep .1; done
-  until kubectl --namespace=deis get po | grep [d]eis-database- | grep "1/1"  >/dev/null 2>&1; do i=$(( (i+1) %4 )); printf "\r${spin:$i:1}"; sleep .1; done
-  until kubectl --namespace=deis get po | grep [d]eis-registry- | grep "1/1"  >/dev/null 2>&1; do i=$(( (i+1) %4 )); printf "\r${spin:$i:1}"; sleep .1; done
+  if [[ ! -f postgres_settings ]]
+  then
+    until kubectl --namespace=deis get po | grep [d]eis-database- | grep "1/1"  >/dev/null 2>&1; do i=$(( (i+1) %4 )); printf "\r${spin:$i:1}"; sleep .1; done
+  fi
   until kubectl --namespace=deis get po | grep [d]eis-router- | grep "1/1"  >/dev/null 2>&1; do i=$(( (i+1) %4 )); printf "\r${spin:$i:1}"; sleep .1; done
   until kubectl --namespace=deis get po | grep [d]eis-controller- | grep "1/1"  >/dev/null 2>&1; do i=$(( (i+1) %4 )); printf "\r${spin:$i:1}"; sleep .1; done
   echo " "
 }
 
 usage() {
-    echo "Usage: install_workflow_2_aws.sh install | upgrade | deis | helmc | cluster"
+    echo "Usage: install_workflow_2_aws.sh install | upgrade | deis | helmc | helm | cluster"
 }
 
 case "$1" in
@@ -254,6 +318,9 @@ case "$1" in
                 ;;
         helmc)
                 install_helmc
+                ;;
+        helm)
+                install_helm
                 ;;
         cluster)
                 cluster

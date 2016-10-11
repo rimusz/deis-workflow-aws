@@ -12,7 +12,7 @@ Clone repository:
 $ git clone https://github.com/rimusz/deis-workflow-aws
 ```
 
-Set S3 region, and AWS keys `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in `settings` file:
+Rename/copy `settings.tpl` file to `settings`, then set S3 region, and AWS keys `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` there:
 
 ```
 # overall Workflow settings
@@ -24,6 +24,9 @@ BUCKETS_S3_REGION=us-west-1
 AWS_ACCESS_KEY_ID=your_aws_access_key_id
 AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 ```
+
+Also if you rename/copy `postgres_settings.tpl` file to `postgres_settings`, then you can set there [PostgreSQL](https://deis.com/docs/workflow/installing-workflow/configuring-postgres/) database to off-cluster.
+You can set the Postgres database in Kubernetes cluster or use RDS one.
 
 How it works
 ------------
@@ -40,9 +43,6 @@ You will be able:
 - deis - fetches the latest Workflow `deis` cli
 - helmc - fetches the latest [Helm Classic](https://github.com/helm/helm-classic) cli
 - cluster - shows Kubernetes cluster name
-
-Also if you rename/copy `postgres_settings.tpl` file to `postgres_settings`, then you can set [PostgreSQL](https://deis.com/docs/workflow/installing-workflow/configuring-postgres/) database to off-cluster.
-You can set the postgres database in Kubernetes cluster or use RDS one.
 
 What the [install](https://deis.com/docs/workflow/installing-workflow/) will do:
 
