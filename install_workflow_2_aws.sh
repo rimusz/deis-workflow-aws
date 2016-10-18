@@ -272,17 +272,18 @@ install_helm() {
   else
       echo " "
       echo "Downloading latest ${LATEST_HELM} of 'helm' cli for macOS"
-      curl -k -L http://storage.googleapis.com/kubernetes-helm/helm-${LATEST_HELM}-darvin-amd64.tar.gz > ~/tmp/helm.tar.gz
+      curl -k -L http://storage.googleapis.com/kubernetes-helm/helm-${LATEST_HELM}-darwin-amd64.tar.gz > ~/tmp/helm.tar.gz
       tar xvf ~/tmp/helm.tar.gz -C ~/tmp --strip=1 darwin-amd64/helm > /dev/null 2>&1
       chmod +x ~/tmp/helm
-      mv -f helm ~/bin/helm
+      mv -f ~/tmp/helm ~/bin/helm
       rm -f ~/tmp/helm.tar.gz
       echo " "
       echo "Installed latest ${LATEST_HELM} of 'helm' cli to ~/bin ..."
       echo " "
       echo "Installing new version of Helm Tiller..."
-      kubectl --namespace=kube-system delete deployment tiller-deploy
+      kubectl --namespace=kube-system delete deployment tiller-deploy > /dev/null 2>&1
       ~/bin/helm init
+      echo "Helm is ready to sail ..."
   fi
 }
 
